@@ -27,14 +27,14 @@ const files = {
   ].join('\n'),
   'stack.txt': [
     'Frontend: React, Vite, interface systems',
-    'Langs: c, c++, Go',
-    'Security: pwn ,boot2root ,OSINT,recon, auth bugs, reports',
-    'Workflow: Arch Linux, Git, automation, notes that survive 3am debugging',
+    'Backend: Node.js, Python, API design',
+    'Security: web exploitation, recon, auth bugs, reports',
+    'Workflow: Linux, Git, automation, notes that survive 3am debugging',
   ].join('\n'),
   'contact.txt': [
     'github: https://github.com/joksdz',
-    'email: boutineryad69@gmail.com',
-    'status: open to dev work, and CTF collabs',
+    'email: hello@ilovecandy.dev',
+    'status: open to security research, dev work, and CTF collabs',
   ].join('\n'),
 };
 
@@ -59,7 +59,7 @@ const blogCategories = ['all', ...new Set(posts.map((post) => post.category))];
 const focusNotes = [
   ['CTF', 'writeups, payload notes, and challenge debriefs'],
   ['Bounty', 'recon trails, impact notes, and clean reproduction steps'],
-  ['Dev', 'small tools,3D projects and cool programs'],
+  ['Dev', 'small tools, React interfaces, and backend utilities'],
   ['Blog', 'field notes with tags instead of throwaway posts'],
 ];
 
@@ -114,11 +114,11 @@ const terminalFileContents = {
   '/home/ilovecandy/.ilovecandy': 'ilovecandy hides many things. try: cd .secrets && ls -la',
   '/home/ilovecandy/.cache/last-target': 'last seen: /blogs/past_diaries',
   '/home/ilovecandy/.secrets/candy.link': 'https://github.com/joksdz',
-  '/home/ilovecandy/.secrets/.note': 'hmmm i think i should add a special command.',
+  '/home/ilovecandy/.secrets/.note': 'not every useful thing belongs on the first ls.',
   '/home/ilovecandy/tools/recon-notes.sh': '#!/bin/sh\nprintf "enumerate, verify, report\\n"',
   '/home/ilovecandy/tools/payload-bank.json': '{ "xss": ["<script>alert(1)</script>"], "sqli": ["\\u0027 OR 1=1--"] }',
   '/home/ilovecandy/tools/report-template.md': '# Report\n\nImpact:\nSteps:\nEvidence:\nFix:',
-  '/home/ilovecandy/flags/practice.ctf': 'CandyCTF{this_is_def_real}',
+  '/home/ilovecandy/flags/practice.ctf': 'flag{practice_notes_are_not_real_flags}',
   '/home/ilovecandy/flags/web-notes.flag': 'remember: check assumptions before payloads',
   '/home/ilovecandy/flags/.almost': 'almost.',
 };
@@ -202,7 +202,7 @@ function makeOutput(command, cwd) {
   switch (base.toLowerCase()) {
     case 'help':
       return {
-        output: 'commands: help, ls, ls -la, cd <dir>, cat <file>, whoami, skills, blog, contact, clear',
+        output: 'commands: help, ls, ls -la, cd <dir>, cat <file>, whoami, skills, blog, contact, ilovecandy, clear',
       };
     case 'ls':
       return { output: listDirectory(cwd, args) };
@@ -260,9 +260,9 @@ function makeOutput(command, cwd) {
       return {
         output: [
           'easter egg unlocked:',
-          'ilovecandy_42069',
+          'https://github.com/joksdz',
           '',
-          'hehe',
+          'hint: ilovecandy hides many things. try ls -la',
         ].join('\n'),
       };
     case 'clear':
@@ -370,7 +370,7 @@ function SiteFooter() {
         <GitBranch size={18} />
         GitHub
       </a>
-      <a href="mailto:boutineryad69@gmail.com">
+      <a href="mailto:hello@ilovecandy.dev">
         <Mail size={18} />
         Email
       </a>
@@ -474,7 +474,7 @@ function HomePage() {
             <Flag size={24} />
             <h3>CTF Player</h3>
             <p>
-               Pwn,Crypto,Osint  challenges documented with
+              Web, crypto, reversing, and forensic challenges documented with
               reusable solve paths and clean notes.
             </p>
           </article>
@@ -490,7 +490,8 @@ function HomePage() {
             <Code2 size={24} />
             <h3>Software Dev</h3>
             <p>
-              compact systems that make technical work less repetitive ,tools,and cool 3d stuff.
+              Frontend tools, backend services, automation scripts, and compact
+              systems that make technical work less repetitive.
             </p>
           </article>
         </div>
