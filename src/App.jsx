@@ -38,10 +38,21 @@ const files = {
   ].join('\n'),
 };
 
+const baseUrl = import.meta.env.BASE_URL;
+const basePath = baseUrl.replace(/\/$/, '');
+
+const routes = {
+  home: `${baseUrl}#/`,
+  work: `${baseUrl}#/#work`,
+  blogs: `${baseUrl}#/blogs`,
+  terminal: `${baseUrl}#/terminal`,
+  pastDiary: `${baseUrl}#/blogs/past_diaries`,
+};
+
 const posts = [
   {
     slug: 'past_diaries',
-    path: '/blogs/past_diaries',
+    path: routes.pastDiary,
     title: 'Past Diary: FSOP From Heap Leaks To Flag',
     category: 'ctf',
     tags: ['ctf', 'pwn', 'heap', 'fsop', 'glibc'],
@@ -55,6 +66,27 @@ const posts = [
 ];
 
 const blogCategories = ['all', ...new Set(posts.map((post) => post.category))];
+
+function getRouteFromLocation() {
+  const hash = window.location.hash;
+
+  if (hash && hash !== '#' && !hash.startsWith('#/')) {
+    return { path: '/', section: hash.slice(1) };
+  }
+
+  if (hash?.startsWith('#/')) {
+    const route = hash.slice(1);
+    const [path, section = ''] = route.split('#');
+
+    return { path: path || '/', section };
+  }
+
+  if (basePath && window.location.pathname.startsWith(`${basePath}/`)) {
+    return { path: window.location.pathname.slice(basePath.length) || '/', section: '' };
+  }
+
+  return { path: '/', section: '' };
+}
 
 const focusNotes = [
   ['CTF', 'writeups, payload notes, and challenge debriefs'],
@@ -112,7 +144,7 @@ const fileSystem = {
 
 const terminalFileContents = {
   '/home/ilovecandy/.ilovecandy': 'ilovecandy hides many things. try: cd .secrets && ls -la',
-  '/home/ilovecandy/.cache/last-target': 'last seen: /blogs/past_diaries',
+  '/home/ilovecandy/.cache/last-target': `last seen: ${routes.pastDiary}`,
   '/home/ilovecandy/.secrets/candy.link': 'https://github.com/joksdz',
   '/home/ilovecandy/.secrets/.note': 'not every useful thing belongs on the first ls.',
   '/home/ilovecandy/tools/recon-notes.sh': '#!/bin/sh\nprintf "enumerate, verify, report\\n"',
@@ -230,7 +262,7 @@ function makeOutput(command, cwd) {
         return {
           output:
             terminalFileContents[`${cwd}/${entry.name}`] ||
-            `${posts[0].title}\n\n${posts[0].excerpt}\n\nOpen: /blogs/past_diaries`,
+            `${posts[0].title}\n\n${posts[0].excerpt}\n\nOpen: ${routes.pastDiary}`,
         };
       }
 
@@ -350,14 +382,14 @@ function SiteNav() {
 
   return (
     <nav className={isStuck ? 'site-nav is-stuck' : 'site-nav'} aria-label="Primary navigation">
-      <a className="brand" href="/">
+      <a className="brand" href={routes.home}>
         <span className="brand-mark">IC</span>
         <span>ILoveCandy</span>
       </a>
       <div className="nav-links">
-        <a href="/#work">Work</a>
-        <a href="/blogs">Blog</a>
-        <a href="/terminal">Terminal</a>
+        <a href={routes.work}>Work</a>
+        <a href={routes.blogs}>Blog</a>
+        <a href={routes.terminal}>Terminal</a>
       </div>
     </nav>
   );
@@ -374,7 +406,7 @@ function SiteFooter() {
         <Mail size={18} />
         Email
       </a>
-      <a href="/#home">
+      <a href={routes.home}>
         <FileText size={18} />
         Resume soon
       </a>
@@ -406,11 +438,11 @@ function HomePage() {
               writeups, tools, research notes, and shipped projects.
             </p>
             <div className="hero-actions">
-              <a className="primary-action" href="/terminal">
+              <a className="primary-action" href={routes.terminal}>
                 Open terminal
                 <TerminalSquare size={18} />
               </a>
-              <a className="secondary-action" href="/blogs/past_diaries">
+              <a className="secondary-action" href={routes.pastDiary}>
                 Read Past Diary
                 <ArrowUpRight size={18} />
               </a>
@@ -530,7 +562,7 @@ function HomePage() {
             </article>
           ))}
         </div>
-        <a className="blog-index-link" href="/blogs">
+        <a className="blog-index-link" href={routes.blogs}>
           Open blog index
           <ArrowUpRight size={18} />
         </a>
@@ -752,7 +784,7 @@ function PastDiaryBlogPage() {
       <section className="writeup-hero">
         <motion.a
           className="back-link"
-          href="/blogs"
+          href={routes.blogs}
           initial={{ opacity: 0, x: -12 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.45, ease: 'easeOut' }}
@@ -797,13 +829,13 @@ function PastDiaryBlogPage() {
       <article className="writeup-layout">
         <aside className="writeup-toc">
           <span>contents</span>
-          <a href="#primitive">Primitive</a>
-          <a href="#house-orange">House of Orange</a>
-          <a href="#heap-leak">Heap leak</a>
-          <a href="#fake-file">Fake FILE</a>
-          <a href="#poison">Tcache poison</a>
-          <a href="#fsop">FSOP pivot</a>
-          <a href="#rop">ROP chain</a>
+          <a href={`${routes.pastDiary}#primitive`}>Primitive</a>
+          <a href={`${routes.pastDiary}#house-orange`}>House of Orange</a>
+          <a href={`${routes.pastDiary}#heap-leak`}>Heap leak</a>
+          <a href={`${routes.pastDiary}#fake-file`}>Fake FILE</a>
+          <a href={`${routes.pastDiary}#poison`}>Tcache poison</a>
+          <a href={`${routes.pastDiary}#fsop`}>FSOP pivot</a>
+          <a href={`${routes.pastDiary}#rop`}>ROP chain</a>
         </aside>
 
         <div className="writeup-body">
@@ -1127,7 +1159,7 @@ function BlogPage() {
       <SiteNav />
 
       <section className="blogs-hero">
-        <a className="back-link" href="/">
+        <a className="back-link" href={routes.home}>
           <ArrowLeft size={18} />
           Home
         </a>
@@ -1217,13 +1249,24 @@ function BlogPage() {
 }
 
 function App() {
-  const [path, setPath] = useState(window.location.pathname);
+  const [{ path, section }, setRoute] = useState(getRouteFromLocation);
 
   useEffect(() => {
-    const syncPath = () => setPath(window.location.pathname);
-    window.addEventListener('popstate', syncPath);
-    return () => window.removeEventListener('popstate', syncPath);
+    const syncRoute = () => setRoute(getRouteFromLocation());
+    window.addEventListener('hashchange', syncRoute);
+    return () => window.removeEventListener('hashchange', syncRoute);
   }, []);
+
+  useEffect(() => {
+    if (!section) {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      document.getElementById(section)?.scrollIntoView();
+    });
+  }, [path, section]);
 
   if (path === '/blogs') return <BlogPage />;
   if (path === '/blogs/past_diaries' || path === '/blogs/past_diraies') return <PastDiaryBlogPage />;
