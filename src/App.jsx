@@ -27,13 +27,13 @@ const files = {
   ].join('\n'),
   'stack.txt': [
     'Frontend: React, Vite, interface systems',
-    'Backend: Node.js, Python, API design',
+    'Game/dev: C, C++, Go, 3D modeling, gameplay systems',
     'Security: web exploitation, recon, auth bugs, reports',
     'Workflow: Linux, Git, automation, notes that survive 3am debugging',
   ].join('\n'),
   'contact.txt': [
     'github: https://github.com/joksdz',
-    'email: hello@ilovecandy.dev',
+    'email: boutineryad69@gmail.com',
     'status: open to security research, dev work, and CTF collabs',
   ].join('\n'),
 };
@@ -91,7 +91,7 @@ function getRouteFromLocation() {
 const focusNotes = [
   ['CTF', 'writeups, payload notes, and challenge debriefs'],
   ['Bounty', 'recon trails, impact notes, and clean reproduction steps'],
-  ['Dev', 'small tools, React interfaces, and backend utilities'],
+  ['Dev', 'small tools, React interfaces, and game dev experiments'],
   ['Blog', 'field notes with tags instead of throwaway posts'],
 ];
 
@@ -99,7 +99,9 @@ const skills = [
   'Web exploitation',
   'Recon automation',
   'Secure React apps',
-  'API debugging',
+  'C / C++ / Go',
+  '3D modeling',
+  'Game dev',
   'Linux internals',
   'Writeups',
 ];
@@ -402,7 +404,7 @@ function SiteFooter() {
         <GitBranch size={18} />
         GitHub
       </a>
-      <a href="mailto:hello@ilovecandy.dev">
+      <a href="mailto:boutineryad69@gmail.com">
         <Mail size={18} />
         Email
       </a>
@@ -522,8 +524,8 @@ function HomePage() {
             <Code2 size={24} />
             <h3>Software Dev</h3>
             <p>
-              Frontend tools, backend services, automation scripts, and compact
-              systems that make technical work less repetitive.
+              Frontend tools, C/C++/Go experiments, 3D modeling workflows, and
+              game-dev prototypes that make technical work more hands-on.
             </p>
           </article>
         </div>
