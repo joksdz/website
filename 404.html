@@ -9,7 +9,6 @@
       const pathname = window.location.pathname;
       const route = pathname.startsWith(`${base}/`) ? pathname.slice(base.length) : '/';
       window.location.replace(`${base}/#${route}${window.location.search}${window.location.hash}`);
-
     </script>
   </head>
   <body>
