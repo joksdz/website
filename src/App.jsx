@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { checkpointMarkdown } from './checkpointWriteup.js';
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -47,9 +48,23 @@ const routes = {
   blogs: `${baseUrl}#/blogs`,
   terminal: `${baseUrl}#/terminal`,
   pastDiary: `${baseUrl}#/blogs/past_diaries`,
+  checkpoint: `${baseUrl}#/blogs/checkpoint_htb`,
 };
 
 const posts = [
+  {
+    slug: 'checkpoint_htb',
+    path: routes.checkpoint,
+    title: 'Hack The Box Checkpoint: Full AD Chain',
+    category: 'ctf',
+    tags: ['htb', 'active-directory', 'windows', 'kerberos', 'dmsa', 'forensics'],
+    date: 'June 2026',
+    read: '35 min',
+    summary:
+      'A full Hack The Box Checkpoint writeup covering the Alex Turner foothold, Mark Davies restore and Kerberoast, DevDrop VSIX execution, Ryan Brooks user flag, dMSA / BadSuccessor escalation, VMBackups access, Volatility hash extraction, and Administrator pass-the-hash.',
+    excerpt:
+      'Checkpoint is chained through Active Directory object abuse rather than a simple local privesc: restore Mark Davies, roast the account, upload a VSIX into DevDrop, pivot as Ryan Brooks, abuse dMSA / BadSuccessor into svc_deploy, pull a VMware memory snapshot, and extract the local Administrator hash.',
+  },
   {
     slug: 'past_diaries',
     path: routes.pastDiary,
@@ -174,6 +189,384 @@ const ropSteps = [
   ['pop rdi; ret', 'rdi = A=;cat /flag.txt'],
   ['system', 'sh -c command prints flag'],
 ];
+
+
+const checkpointStages = [
+  ['Initial foothold', 'Use alex.turner to restore mark.davies, add an SPN, Kerberoast, and recover Checkpoint2024!.'],
+  ['DevDrop execution', 'Upload a VS Code VSIX package to the writable DevDrop share and receive execution as ryan.brooks on DC01.'],
+  ['AD object abuse', 'Create rbdmsa$ and set the BadSuccessor attributes that link it to the deployment service account svc_deploy.'],
+  ['Kerberos pivot', 'Convert Ryan\'s delegated TGT to ccache, request the dMSA ticket with Impacket, then request CIFS for DC01.'],
+  ['Backup extraction', 'Access VMBackups and download the VMware memory snapshot instead of pulling the unnecessary 10+ GB VMDK.'],
+  ['Administrator shell', 'Run Volatility hashdump, recover the local Administrator NTLM hash, and pass-the-hash over WinRM.'],
+];
+
+const checkpointFlowNodes = [
+  ['alex.turner', 44, 80],
+  ['mark.davies', 238, 80],
+  ['DevDrop VSIX', 458, 80],
+  ['ryan.brooks', 714, 80],
+  ['rbdmsa$', 96, 306],
+  ['svc_deploy', 322, 306],
+  ['VMBackups', 548, 306],
+  ['Administrator', 786, 306],
+];
+
+function slugifyHeading(text) {
+  return text
+    .replace(/`([^`]+)`/g, '$1')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'section';
+}
+
+function parseInlineMarkdown(text) {
+  const parts = String(text).split(/(`[^`]+`)/g);
+
+  return parts.map((part, index) => {
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return <code key={`${part}-${index}`}>{part.slice(1, -1)}</code>;
+    }
+
+    return part;
+  });
+}
+
+function isTableSeparator(line = '') {
+  return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+}
+
+function splitTableRow(line = '') {
+  return line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((cell) => cell.trim());
+}
+
+function parseMarkdownBlocks(markdown) {
+  const lines = markdown.replace(/\r\n/g, '\n').split('\n');
+  const blocks = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index];
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      index += 1;
+      continue;
+    }
+
+    const fence = trimmed.match(/^```\s*([^`]*)$/);
+    if (fence) {
+      const lang = fence[1]?.trim() || '';
+      const codeLines = [];
+      index += 1;
+
+      while (index < lines.length && !lines[index].trim().startsWith('```')) {
+        codeLines.push(lines[index]);
+        index += 1;
+      }
+
+      if (index < lines.length) index += 1;
+      blocks.push({ type: 'code', lang, text: codeLines.join('\n') });
+      continue;
+    }
+
+    const heading = trimmed.match(/^(#{1,6})\s+(.+)$/);
+    if (heading) {
+      blocks.push({ type: 'heading', level: heading[1].length, text: heading[2].trim() });
+      index += 1;
+      continue;
+    }
+
+    if (trimmed === '---') {
+      blocks.push({ type: 'hr' });
+      index += 1;
+      continue;
+    }
+
+    if (trimmed.startsWith('|') && isTableSeparator(lines[index + 1] || '')) {
+      const header = splitTableRow(lines[index]);
+      index += 2;
+      const rows = [];
+
+      while (index < lines.length && lines[index].trim().startsWith('|')) {
+        rows.push(splitTableRow(lines[index]));
+        index += 1;
+      }
+
+      blocks.push({ type: 'table', header, rows });
+      continue;
+    }
+
+    if (/^>\s?/.test(trimmed)) {
+      const quoteLines = [];
+      while (index < lines.length && /^>\s?/.test(lines[index].trim())) {
+        quoteLines.push(lines[index].trim().replace(/^>\s?/, ''));
+        index += 1;
+      }
+      blocks.push({ type: 'quote', text: quoteLines.join(' ') });
+      continue;
+    }
+
+    if (/^[-*]\s+/.test(trimmed)) {
+      const items = [];
+      while (index < lines.length && /^[-*]\s+/.test(lines[index].trim())) {
+        items.push(lines[index].trim().replace(/^[-*]\s+/, ''));
+        index += 1;
+      }
+      blocks.push({ type: 'list', items });
+      continue;
+    }
+
+    const paragraph = [trimmed];
+    index += 1;
+
+    while (index < lines.length) {
+      const next = lines[index].trim();
+      if (
+        !next ||
+        /^```/.test(next) ||
+        /^(#{1,6})\s+/.test(next) ||
+        next === '---' ||
+        (next.startsWith('|') && isTableSeparator(lines[index + 1] || '')) ||
+        /^[-*]\s+/.test(next) ||
+        /^>\s?/.test(next)
+      ) {
+        break;
+      }
+      paragraph.push(next);
+      index += 1;
+    }
+
+    blocks.push({ type: 'paragraph', text: paragraph.join(' ') });
+  }
+
+  return blocks;
+}
+
+function buildMarkdownSections(markdown) {
+  const blocks = parseMarkdownBlocks(markdown);
+  const sections = [];
+  let current = null;
+
+  blocks.forEach((block) => {
+    if (block.type === 'heading' && block.level === 1) return;
+
+    if (block.type === 'heading' && block.level === 2) {
+      current = {
+        id: slugifyHeading(block.text),
+        title: block.text,
+        blocks: [],
+      };
+      sections.push(current);
+      return;
+    }
+
+    if (!current) {
+      current = {
+        id: 'overview',
+        title: 'Overview',
+        blocks: [],
+      };
+      sections.push(current);
+    }
+
+    current.blocks.push(block);
+  });
+
+  return sections;
+}
+
+function MarkdownBlock({ block }) {
+  switch (block.type) {
+    case 'heading': {
+      const Tag = block.level <= 3 ? 'h3' : 'h4';
+      return <Tag className={`markdown-heading level-${block.level}`}>{parseInlineMarkdown(block.text)}</Tag>;
+    }
+    case 'paragraph':
+      return <p>{parseInlineMarkdown(block.text)}</p>;
+    case 'quote':
+      return <blockquote className="writeup-quote">{parseInlineMarkdown(block.text)}</blockquote>;
+    case 'list':
+      return (
+        <ul className="writeup-list">
+          {block.items.map((item) => (
+            <li key={item}>{parseInlineMarkdown(item)}</li>
+          ))}
+        </ul>
+      );
+    case 'table':
+      return (
+        <div className="writeup-table-wrap">
+          <table className="writeup-table">
+            <thead>
+              <tr>
+                {block.header.map((cell) => (
+                  <th key={cell}>{parseInlineMarkdown(cell)}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {block.rows.map((row, rowIndex) => (
+                <tr key={`row-${rowIndex}`}>
+                  {row.map((cell, cellIndex) => (
+                    <td key={`${rowIndex}-${cellIndex}`}>{parseInlineMarkdown(cell)}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    case 'code':
+      return (
+        <pre className="code-panel"><code>{block.text}</code></pre>
+      );
+    case 'hr':
+      return <hr className="writeup-divider" />;
+    default:
+      return null;
+  }
+}
+
+function CheckpointChainDiagram() {
+  const lanes = [
+    ['identity', 'alex.turner', 'restore + roast', 'mark.davies'],
+    ['execution', 'DevDrop', 'VSIX callback', 'ryan.brooks'],
+    ['domain pivot', 'rbdmsa$', 'BadSuccessor link', 'svc_deploy'],
+    ['forensics', 'VMBackups', 'Volatility hashdump', 'Administrator'],
+  ];
+
+  return (
+    <motion.div
+      className="diagram-card checkpoint-diagram checkpoint-chain-map"
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-100px' }}
+      transition={{ duration: 0.55, ease: 'easeOut' }}
+    >
+      <div className="diagram-title">
+        <span>diagram 01</span>
+        <h3>Attack chain from recovered identity to Administrator shell</h3>
+      </div>
+
+      <div className="checkpoint-lane-map" aria-label="Checkpoint attack chain diagram">
+        {lanes.map(([lane, from, action, to], index) => (
+          <motion.div
+            className="checkpoint-lane"
+            key={lane}
+            initial={{ opacity: 0, x: -18 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: index * 0.075, duration: 0.38, ease: 'easeOut' }}
+          >
+            <div className="checkpoint-lane-index">{String(index + 1).padStart(2, '0')}</div>
+            <div className="checkpoint-lane-label">{lane}</div>
+            <div className="checkpoint-node-pill">{from}</div>
+            <div className="checkpoint-connector">
+              <span>{action}</span>
+            </div>
+            <div className="checkpoint-node-pill checkpoint-node-destination">{to}</div>
+          </motion.div>
+        ))}
+      </div>
+
+      <p className="checkpoint-diagram-note">
+        The chain is split by control boundary: identity recovery, code execution, domain-object abuse,
+        then offline memory forensics for the final Administrator hash.
+      </p>
+    </motion.div>
+  );
+}
+
+function CheckpointBlogPage() {
+  const sections = useMemo(() => buildMarkdownSections(checkpointMarkdown), []);
+
+  return (
+    <main className="checkpoint-shell past-diary-shell">
+      <SiteNav />
+
+      <section className="writeup-hero">
+        <motion.a
+          className="back-link"
+          href={routes.blogs}
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
+        >
+          <ArrowLeft size={18} />
+          Blog index
+        </motion.a>
+
+        <motion.div
+          className="writeup-hero-grid"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
+          <div className="writeup-title-block">
+            <span className="eyebrow writeup-eyebrow">
+              <Flag size={16} />
+              Hack The Box / Windows AD / dMSA + forensics
+            </span>
+            <h1>Checkpoint</h1>
+            <p>
+              A complete Hack The Box Checkpoint report presented as a long-form writeup. The page
+              keeps the full technical notes, readable code panels, a sticky table of contents, and
+              a custom attack-chain diagram placed after the initial report context.
+            </p>
+          </div>
+
+          <aside className="writeup-card">
+            <span>route</span>
+            <code>/blogs/checkpoint_htb</code>
+            <p>
+              Focus: Windows Active Directory, Kerberos ticket abuse, delegated Managed Service
+              Accounts, VMware memory snapshots, Volatility, and pass-the-hash over WinRM.
+            </p>
+          </aside>
+        </motion.div>
+      </section>
+
+      <article className="writeup-layout">
+        <aside className="writeup-toc">
+          <span>contents</span>
+          {sections.map((section) => (
+            <a href={`${routes.checkpoint}#${section.id}`} key={section.id}>{section.title}</a>
+          ))}
+        </aside>
+
+        <div className="writeup-body writeup-markdown">
+          {sections.map((section, index) => (
+            <div className="checkpoint-section-group" key={section.id}>
+              <motion.section
+                id={section.id}
+                className="writeup-section markdown-section"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-80px' }}
+                transition={{ delay: Math.min(index * 0.025, 0.12), duration: 0.5, ease: 'easeOut' }}
+              >
+                <span>{String(index + 1).padStart(2, '0')} · writeup section</span>
+                <h2>{parseInlineMarkdown(section.title)}</h2>
+                {section.blocks.map((block, blockIndex) => (
+                  <MarkdownBlock block={block} key={`${section.id}-${blockIndex}`} />
+                ))}
+              </motion.section>
+
+              {index === 1 ? <CheckpointChainDiagram /> : null}
+            </div>
+          ))}
+        </div>
+      </article>
+
+      <SiteFooter />
+    </main>
+  );
+}
 
 function listDirectory(cwd, args) {
   const entries = fileSystem[cwd] || [];
@@ -1169,8 +1562,7 @@ function BlogPage() {
           <span>field notes</span>
           <h1>Blogs</h1>
           <p>
-            One real writeup is published here for now: the Past Diary pwn chain.
-            Placeholder posts were removed so the blog index only links to actual content.
+            Published writeups live here as full pages, including the Past Diary pwn chain and the HTB Checkpoint Active Directory chain.
           </p>
         </div>
       </section>
@@ -1271,6 +1663,7 @@ function App() {
   }, [path, section]);
 
   if (path === '/blogs') return <BlogPage />;
+  if (path === '/blogs/checkpoint_htb') return <CheckpointBlogPage />;
   if (path === '/blogs/past_diaries' || path === '/blogs/past_diraies') return <PastDiaryBlogPage />;
   if (path === '/terminal') return <TerminalPage />;
 
