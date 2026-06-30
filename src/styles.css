@@ -21,11 +21,6 @@
   --glass: rgba(18, 16, 13, 0.46);
   --glass-strong: rgba(13, 12, 10, 0.62);
   --shadow: 0 28px 90px rgba(0, 0, 0, 0.52);
-  --wallpaper-home: url("/wallpapers/poykkm.jpg");
-  --wallpaper-blogs: url("/wallpapers/wallhaven-x8e2lv.png");
-  --wallpaper-terminal: url("/wallpapers/new98r.jpg");
-  --wallpaper-past-diary: url("/wallpapers/wallhaven-9oord8.jpg");
-  --wallpaper-checkpoint: url("/wallpapers/darth_vader.jpg");
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -77,6 +72,7 @@ main {
 }
 
 .home-shell {
+  --wallpaper-home: url("/wallpapers/optimized/poykkm.webp");
   background:
     linear-gradient(rgba(6, 8, 8, 0.46), rgba(6, 8, 8, 0.5)),
     linear-gradient(
@@ -97,6 +93,7 @@ main {
 }
 
 .blogs-shell {
+  --wallpaper-blogs: url("/wallpapers/optimized/wallhaven-x8e2lv.webp");
   background:
     linear-gradient(rgba(6, 6, 8, 0.52), rgba(6, 6, 8, 0.58)),
     linear-gradient(
@@ -891,18 +888,18 @@ h2 {
 .past-diary-shell {
   --section-accent: var(--iris);
   --section-accent-2: var(--cyan);
+  --wallpaper-past-diary: url("/wallpapers/optimized/wallhaven-9oord8.webp");
   min-height: 100vh;
   background:
     linear-gradient(rgba(5, 6, 8, 0.64), rgba(5, 6, 8, 0.74)),
     radial-gradient(circle at 18% 12%, rgba(136, 0, 0, 0.24), transparent 38%),
     radial-gradient(circle at 86% 18%, rgba(140, 168, 179, 0.16), transparent 42%),
     var(--wallpaper-past-diary),
-    var(--wallpaper-blogs),
     var(--bg);
-  background-size: auto, auto, auto, cover, cover, auto;
-  background-position: center, center, center, center, center, center;
-  background-attachment: scroll, scroll, scroll, fixed, fixed, scroll;
-  background-blend-mode: normal, screen, screen, normal, normal, normal;
+  background-size: auto, auto, auto, cover, auto;
+  background-position: center, center, center, center, center;
+  background-attachment: scroll, scroll, scroll, fixed, scroll;
+  background-blend-mode: normal, screen, screen, normal, normal;
 }
 
 .writeup-hero,
@@ -987,6 +984,18 @@ h2 {
   margin-top: 16px;
 }
 
+.writeup-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin-top: 18px;
+  border: 1px solid color-mix(in srgb, var(--section-accent-2) 32%, transparent);
+  padding: 10px 12px;
+  color: var(--section-accent-2);
+  font-weight: 900;
+}
+
 .writeup-card strong {
   color: var(--text);
   font-weight: 900;
@@ -1068,6 +1077,31 @@ height: fit-content;
 .writeup-section p {
   margin-top: 18px;
   max-width: 900px;
+}
+
+.writeup-section strong {
+  color: var(--text);
+}
+
+.writeup-image {
+  margin: 22px 0 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--section-accent-2) 22%, transparent);
+  background: rgba(0, 0, 0, 0.36);
+}
+
+.writeup-image img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.writeup-image figcaption {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 0.86rem;
 }
 
 .writeup-section code,
@@ -1531,6 +1565,7 @@ height: fit-content;
 .terminal-only-page {
   --terminal-accent: var(--cyan);
   --terminal-accent-2: var(--iris);
+  --wallpaper-terminal: url("/wallpapers/optimized/new98r.webp");
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1602,17 +1637,33 @@ footer a {
 .checkpoint-shell {
   --section-accent: var(--muted);
   --section-accent-2: var(--cyan);
+  --wallpaper-checkpoint: url("/wallpapers/optimized/darth_vader.webp");
   background:
     linear-gradient(rgba(5, 6, 8, 0.64), rgba(5, 6, 8, 0.74)),
     radial-gradient(circle at 18% 12%, rgba(13, 0, 0, 0.24), transparent 38%),
     radial-gradient(circle at 86% 18%, rgba(140, 168, 179, 0.16), transparent 42%),
     var(--wallpaper-checkpoint),
-    var(--wallpaper-blogs),
     var(--bg);
-  background-size: auto, auto, auto, cover, cover, auto;
-  background-position: center, center, center, center, center, center;
-  background-attachment: scroll, scroll, scroll, fixed, fixed, scroll;
-  background-blend-mode: normal, screen, screen, normal, normal, normal;
+  background-size: auto, auto, auto, cover, auto;
+  background-position: center, center, center, center, center;
+  background-attachment: scroll, scroll, scroll, fixed, scroll;
+  background-blend-mode: normal, screen, screen, normal, normal;
+}
+
+.banana-shell {
+  --section-accent: #f5c84b;
+  --section-accent-2: #70bee0;
+  --wallpaper-banana: url("/writeups/banana/minions-in-16k-start.webp");
+  background:
+    linear-gradient(rgba(5, 6, 8, 0.62), rgba(5, 6, 8, 0.76)),
+    radial-gradient(circle at 18% 12%, rgba(245, 200, 75, 0.18), transparent 38%),
+    radial-gradient(circle at 86% 18%, rgba(112, 190, 224, 0.18), transparent 42%),
+    var(--wallpaper-banana),
+    var(--bg);
+  background-size: auto, auto, auto, cover, auto;
+  background-position: center, center, center, center, center;
+  background-attachment: scroll, scroll, scroll, fixed, scroll;
+  background-blend-mode: normal, screen, screen, normal, normal;
 }
 
 .writeup-markdown .markdown-heading {
@@ -1919,11 +1970,6 @@ footer a {
     width: min(100% - 24px, 1160px);
     flex-wrap: wrap;
   }
-}
-
-/* Checkpoint layout corrections */
-.checkpoint-shell {
-  --wallpaper-checkpoint: url("/wallpapers/darth_vader.jpg");
 }
 
 .checkpoint-shell .writeup-hero,

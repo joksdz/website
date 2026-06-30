@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { bananaMarkdown } from './bananaWriteup.js';
 import { checkpointMarkdown } from './checkpointWriteup.js';
 import {
   ArrowLeft,
@@ -49,9 +50,23 @@ const routes = {
   terminal: `${baseUrl}#/terminal`,
   pastDiary: `${baseUrl}#/blogs/past_diaries`,
   checkpoint: `${baseUrl}#/blogs/checkpoint_htb`,
+  banana: `${baseUrl}#/blogs/minions_in_16k`,
 };
 
 const posts = [
+  {
+    slug: 'minions_in_16k',
+    path: routes.banana,
+    title: 'Minions in 16K',
+    category: 'ctf',
+    tags: ['ctf', 'rev', 'game', 'banana'],
+    date: 'June 2026',
+    read: '8 min',
+    summary:
+      'A SEKAI CTF rev writeup for Minions in 16K: patching the Linux client with faster aim, higher resolution, Gru in the kitchen, bananas around the map, transparent walls, and red target boxes.',
+    excerpt:
+      'WE ARE GONNA STEAL THE MOON. BANANA. Minions in 16K was a SEKAI CTF rev game challenge where a better patched Linux client means better scores: faster aim, higher render quality, kitchen Gru, bananas, transparent walls, and target boxes.',
+  },
   {
     slug: 'checkpoint_htb',
     path: routes.checkpoint,
@@ -220,11 +235,15 @@ function slugifyHeading(text) {
 }
 
 function parseInlineMarkdown(text) {
-  const parts = String(text).split(/(`[^`]+`)/g);
+  const parts = String(text).split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
 
   return parts.map((part, index) => {
     if (part.startsWith('`') && part.endsWith('`')) {
       return <code key={`${part}-${index}`}>{part.slice(1, -1)}</code>;
+    }
+
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>;
     }
 
     return part;
@@ -287,6 +306,13 @@ function parseMarkdownBlocks(markdown) {
       continue;
     }
 
+    const image = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (image) {
+      blocks.push({ type: 'image', alt: image[1].trim(), src: image[2].trim() });
+      index += 1;
+      continue;
+    }
+
     if (trimmed.startsWith('|') && isTableSeparator(lines[index + 1] || '')) {
       const header = splitTableRow(lines[index]);
       index += 2;
@@ -331,6 +357,7 @@ function parseMarkdownBlocks(markdown) {
         /^```/.test(next) ||
         /^(#{1,6})\s+/.test(next) ||
         next === '---' ||
+        /^!\[([^\]]*)\]\(([^)]+)\)$/.test(next) ||
         (next.startsWith('|') && isTableSeparator(lines[index + 1] || '')) ||
         /^[-*]\s+/.test(next) ||
         /^>\s?/.test(next)
@@ -425,11 +452,115 @@ function MarkdownBlock({ block }) {
       return (
         <pre className="code-panel"><code>{block.text}</code></pre>
       );
+    case 'image':
+      return (
+        <figure className="writeup-image">
+          <img src={block.src} alt={block.alt} loading="lazy" decoding="async" />
+          {block.alt ? <figcaption>{block.alt}</figcaption> : null}
+        </figure>
+      );
     case 'hr':
       return <hr className="writeup-divider" />;
     default:
       return null;
   }
+}
+
+function MarkdownBlogPage({ markdown, shellClassName, eyebrow, title, description, route, cardText, cardLink }) {
+  const sections = useMemo(() => buildMarkdownSections(markdown), [markdown]);
+
+  return (
+    <main className={shellClassName}>
+      <SiteNav />
+
+      <section className="writeup-hero">
+        <motion.a
+          className="back-link"
+          href={routes.blogs}
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
+        >
+          <ArrowLeft size={18} />
+          Blog index
+        </motion.a>
+
+        <motion.div
+          className="writeup-hero-grid"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
+          <div className="writeup-title-block">
+            <span className="eyebrow writeup-eyebrow">
+              <Flag size={16} />
+              {eyebrow}
+            </span>
+            <h1>{title}</h1>
+            <p>{description}</p>
+          </div>
+
+          <aside className="writeup-card">
+            <span>route</span>
+            <code>{route.replace(baseUrl, '')}</code>
+            <p>{cardText}</p>
+            {cardLink ? (
+              <a className="writeup-card-link" href={cardLink} target="_blank" rel="noreferrer">
+                Game build
+                <ArrowUpRight size={17} />
+              </a>
+            ) : null}
+          </aside>
+        </motion.div>
+      </section>
+
+      <article className="writeup-layout">
+        <aside className="writeup-toc">
+          <span>contents</span>
+          {sections.map((section) => (
+            <a href={`${route}#${section.id}`} key={section.id}>{section.title}</a>
+          ))}
+        </aside>
+
+        <div className="writeup-body writeup-markdown">
+          {sections.map((section, index) => (
+            <motion.section
+              id={section.id}
+              className="writeup-section markdown-section"
+              key={section.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ delay: Math.min(index * 0.025, 0.12), duration: 0.5, ease: 'easeOut' }}
+            >
+              <span>{String(index + 1).padStart(2, '0')} · writeup section</span>
+              <h2>{parseInlineMarkdown(section.title)}</h2>
+              {section.blocks.map((block, blockIndex) => (
+                <MarkdownBlock block={block} key={`${section.id}-${blockIndex}`} />
+              ))}
+            </motion.section>
+          ))}
+        </div>
+      </article>
+
+      <SiteFooter />
+    </main>
+  );
+}
+
+function BananaBlogPage() {
+  return (
+    <MarkdownBlogPage
+      markdown={bananaMarkdown}
+      shellClassName="banana-shell past-diary-shell"
+      eyebrow="SEKAI CTF / rev / Linux game client"
+      title="Minions in 16K"
+      description="A SEKAI CTF rev challenge writeup for patching the Linux game client: faster aim, cleaner rendering, Gru in the kitchen, bananas across the map, transparent walls, and red target boxes."
+      route={routes.banana}
+      cardText="The downloadable game stays on Google Drive so the website remains lightweight and the repository does not ship the local archive."
+      cardLink="https://drive.google.com/file/d/1UR3uB8JKrSRo_xYkOCvm3lTo-hyvpfBk/view?usp=sharing"
+    />
+  );
 }
 
 function CheckpointChainDiagram() {
@@ -1562,7 +1693,7 @@ function BlogPage() {
           <span>field notes</span>
           <h1>Blogs</h1>
           <p>
-            Published writeups live here as full pages, including the Past Diary pwn chain and the HTB Checkpoint Active Directory chain.
+            Published writeups live here as full pages, including Minions in 16K, the Past Diary pwn chain, and the HTB Checkpoint Active Directory chain.
           </p>
         </div>
       </section>
@@ -1663,6 +1794,7 @@ function App() {
   }, [path, section]);
 
   if (path === '/blogs') return <BlogPage />;
+  if (path === '/blogs/minions_in_16k') return <BananaBlogPage />;
   if (path === '/blogs/checkpoint_htb') return <CheckpointBlogPage />;
   if (path === '/blogs/past_diaries' || path === '/blogs/past_diraies') return <PastDiaryBlogPage />;
   if (path === '/terminal') return <TerminalPage />;
